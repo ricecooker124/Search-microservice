@@ -1,4 +1,4 @@
-package se.kth;
+package se.kth.searchservice;
 
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
