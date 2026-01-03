@@ -6,6 +6,7 @@ import io.vertx.mutiny.sqlclient.Row;
 import io.vertx.mutiny.sqlclient.Tuple;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.NotFoundException;
 import se.kth.searchservice.dto.EncounterDto;
 import se.kth.searchservice.dto.PatientDto;
 
@@ -132,24 +133,36 @@ public class SearchService {
         LocalDateTime end = date.plusDays(1).atStartOfDay();
 
         String sql = """
-            SELECT
-              e.id,
-              e.date,
-              e.reason,
-              e.image_id,
-              e.location_id,
-              e.patient_id,
-              p.first_name,
-              p.last_name
-            FROM encounter e
-            JOIN practitioner pr ON pr.person_id = e.practitioner_id
-            JOIN patient pat ON pat.person_id = e.patient_id
-            JOIN person p ON p.person_id = pat.person_id
-            WHERE pr.username = ?
-              AND e.date >= ?
-              AND e.date < ?
-            ORDER BY e.date DESC
-            """;
+        SELECT
+          e.id,
+          e.date,
+          e.reason,
+          e.image_id,
+
+          e.patient_id,
+          pp.first_name AS patient_first_name,
+          pp.last_name  AS patient_last_name,
+
+          e.location_id,
+          l.name        AS location_name,
+          l.address     AS location_address,
+
+          o.id          AS organization_id,
+          o.name        AS organization_name
+        FROM encounter e
+        JOIN practitioner pr ON pr.person_id = e.practitioner_id
+
+        JOIN patient pat ON pat.person_id = e.patient_id
+        JOIN person pp   ON pp.person_id  = pat.person_id
+
+        LEFT JOIN location l     ON l.id = e.location_id
+        LEFT JOIN organization o ON o.id = l.organization_id
+
+        WHERE pr.username = ?
+          AND e.date >= ?
+          AND e.date < ?
+        ORDER BY e.date DESC
+        """;
 
         return client.preparedQuery(sql)
                 .execute(Tuple.of(practitionerUsername, start, end))
@@ -161,13 +174,56 @@ public class SearchService {
                                 r.getLocalDateTime("date"),
                                 r.getString("reason"),
                                 r.getLong("image_id"),
-                                r.getLong("location_id"),
+
                                 r.getLong("patient_id"),
-                                r.getString("first_name"),
-                                r.getString("last_name")
+                                r.getString("patient_first_name"),
+                                r.getString("patient_last_name"),
+
+                                r.getLong("location_id"),
+                                r.getString("location_name"),
+                                r.getString("location_address"),
+
+                                r.getLong("organization_id"),
+                                r.getString("organization_name")
                         ));
                     }
                     return out;
+                });
+    }
+
+    public Uni<PatientDto> getPatientById(Long patientId) {
+        String sql = """
+        SELECT
+          pat.person_id,
+          pat.username,
+          p.first_name,
+          p.last_name,
+          p.ssn,
+          p.birth_date,
+          p.gender
+        FROM patient pat
+        JOIN person p ON p.person_id = pat.person_id
+        WHERE pat.person_id = ?
+        LIMIT 1
+        """;
+
+        return client.preparedQuery(sql)
+                .execute(Tuple.of(patientId))
+                .map(rows -> {
+                    Row r = rows.iterator().hasNext() ? rows.iterator().next() : null;
+                    if (r == null) {
+                        throw new NotFoundException("Patient not found: " + patientId);
+                    }
+
+                    return new PatientDto(
+                            r.getLong("person_id"),
+                            r.getString("username"),
+                            r.getString("first_name"),
+                            r.getString("last_name"),
+                            r.getString("ssn"),
+                            r.getLocalDate("birth_date"),
+                            r.getString("gender")
+                    );
                 });
     }
 }

@@ -7,8 +7,15 @@ public record EncounterDto(
         LocalDateTime date,
         String reason,
         Long imageId,
-        Long locationId,
+
         Long patientId,
         String patientFirstName,
-        String patientLastName
+        String patientLastName,
+
+        Long locationId,
+        String locationName,
+        String locationAddress,
+
+        Long organizationId,
+        String organizationName
 ) {}

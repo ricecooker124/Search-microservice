@@ -50,4 +50,11 @@ public class SearchResource {
         }
         return service.practitionerEncountersByDate(username, LocalDate.parse(date));
     }
+
+    @GET
+    @Path("/patients/{id}")
+    public Uni<PatientDto> getPatientById(@PathParam("id") Long id) {
+        if (id == null) throw new BadRequestException("Missing patient id");
+        return service.getPatientById(id);
+    }
 }
