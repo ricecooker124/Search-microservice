@@ -14,7 +14,6 @@ env:
   IMAGE_NAME: search-microservice
 
 jobs:
-  # ==================== BUILD & TEST ====================
   build-and-test:
     runs-on: ubuntu-latest
 
@@ -35,15 +34,6 @@ jobs:
       - name: Run Unit Tests
         run: ./mvnw -B test
 
-      - name: Generate Test Report
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: Quarkus Test Results
-          path: target/surefire-reports/*.xml
-          reporter: java-junit
-
-  # ==================== BUILD & PUSH DOCKER IMAGE ====================
   docker-build-push:
     runs-on: ubuntu-latest
     needs: build-and-test
@@ -90,3 +80,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
