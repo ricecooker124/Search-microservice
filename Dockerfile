@@ -18,3 +18,4 @@ EXPOSE 8084
 
 # Viktigt: Quarkus kör quarkus-run.jar som finns i quarkus-app/
 ENTRYPOINT ["java","-jar","/app/quarkus-app/quarkus-run.jar"]
+
